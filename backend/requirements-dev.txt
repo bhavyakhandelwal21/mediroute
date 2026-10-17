@@ -1,0 +1,2 @@
+# only needed to regenerate samples/sample_hospital_report.pdf
+reportlab>=4.0
