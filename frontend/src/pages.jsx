@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { api } from './api'
 
 export const Chip = ({ s }) => <span className={`chip ${s}`}>{s}</span>
 const Why = ({ list }) => <ul className="why">{list.map((w, i) => <li key={i}>{w}</li>)}</ul>
@@ -18,11 +19,29 @@ export function Alerts({ rows }) {
         <td>{r.cover != null ? `${r.cover} d` : '-'}</td><td>{r.fc}/day</td><td><Why list={r.why} /></td></tr>)}</tbody></table></>
 }
 
-export const Transfers = ({ items }) => items.length === 0 ? <p className="empty">No feasible transfers with the current settings.</p> :
-  <table><thead><tr><th>Medicine</th><th>From to To</th><th>Qty</th><th>Why this transfer</th></tr></thead>
+export function Transfers({ items }) {
+  const [memos, setMemos] = useState({})
+  const [coldChain, setColdChain] = useState({})
+  const [errors, setErrors] = useState({})
+  if (items.length === 0) return <p className="empty">No feasible transfers with the current settings.</p>
+  const makeMemo = async (t, i) => {
+    try {
+      const result = await api.transferJustification({ source_name: t.from_, target_name: t.to, item_name: t.medicine,
+        qty: t.qty, source_expiry_days: t.source_expiry_days, target_stockout_days: t.target_stockout_days,
+        donor_reserve_days: t.donor_reserve_days, transit_distance_km: t.transit_distance_km,
+        is_cold_chain: Boolean(coldChain[i]) })
+      setMemos((old) => ({ ...old, [i]: result.justification })); setErrors((old) => ({ ...old, [i]: '' }))
+    } catch (e) { setErrors((old) => ({ ...old, [i]: e.message })) }
+  }
+  return <table><thead><tr><th>Medicine</th><th>From to To</th><th>Qty</th><th>Why this transfer / audit memo</th></tr></thead>
     <tbody>{items.map((t, i) => <tr key={i}><td><b>{t.medicine}</b></td>
       <td>{t.from_} to {t.to}<br /><span className="note">{t.transit} day transit</span></td><td><b>{t.qty}</b></td>
-      <td><p className="why">{t.why}</p></td></tr>)}</tbody></table>
+      <td><p className="why">{t.why}</p><p className="note">Source expires in {t.source_expiry_days} d · recipient cover {t.target_stockout_days.toFixed(1)} d · donor reserve after transfer ≥ {t.donor_reserve_days.toFixed(1)} d · {t.transit_distance_km == null ? 'Coordinates missing; road distance unavailable.' : `${t.transit_distance_km} km straight-line estimate`}</p>
+        {t.is_cold_chain ? <><p className="note">Cold-chain eligibility passed: donor transport and recipient storage are marked ready for 2–8°C handling. This is a recorded capability check, not live temperature monitoring.</p>
+          <label className="note"><input type="checkbox" checked={Boolean(coldChain[i])} onChange={(e) => setColdChain((old) => ({ ...old, [i]: e.target.checked }))} /> Confirm cold-chain handling for this shipment before dispatch</label><br /></> : <p className="note">This medicine is not marked as requiring cold-chain handling.</p>}
+        <button type="button" disabled={t.transit_distance_km == null} onClick={() => makeMemo(t, i)}>Generate audit memo</button>
+        {errors[i] && <p className="err">{errors[i]}</p>}{memos[i] && <p className="why" aria-live="polite">{memos[i]}</p>}</td></tr>)}</tbody></table>
+}
 
 export const Reorders = ({ rows }) => rows.length === 0 ? <p className="empty">Nothing to reorder right now.</p> :
   <table><thead><tr><th>Facility / medicine</th><th>Order qty</th><th>Why</th></tr></thead>
@@ -43,7 +62,7 @@ const T = ({ head, rows }) => <table><thead><tr>{head.map((h) => <th key={h}>{h}
 
 export const About = () => <>
   <h3>Problem</h3>
-  <p className="why">Essential medicines run out at some facilities while excess stock at others expires unused. MediFlow estimates demand, detects stockout and expiry risks, recommends transfers and reorder quantities, and explains every recommendation. It uses statistics, fixed rules and calculations, with no AI or machine learning.</p>
+  <p className="why">Essential medicines run out at some facilities while excess stock at others expires unused. MediRoute estimates demand, detects stockout and expiry risks, recommends transfers and reorder quantities, and explains each recommendation. Its AI features include fuzzy medicine-name matching, missing-log imputation, a rule-based outbreak bulletin parser, and optional AI-assisted audit memo wording; core stock decisions remain constrained by explicit inventory rules.</p>
   <p className="why"><b>Goals covered:</b> SDG 3, SDG 9, SDG 12.</p>
   <h3>System workflow and where it lives in this project</h3>
   <T head={['Step', 'What it does', 'File']} rows={[

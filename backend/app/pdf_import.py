@@ -1,6 +1,6 @@
 """Reads a TEXT-based PDF (exported from Excel/Word, not a scan) that contains tables, and loads it into the database.
 
-Stock table needs:  Facility, Medicine, Stock   (optional: Expiry, Lead days, Incoming, Locality, Latitude, Longitude, Usage)
+Stock table needs:  Facility, Medicine, Stock   (optional: Expiry, Lead days, Incoming, Locality, Latitude, Longitude, Usage, Cold chain required, Cold-chain storage, Cold-chain transport)
 Usage table needs:  Facility, Medicine, Date, Used
 Column names are matched loosely (e.g. 'Hospital' = Facility, 'Qty' = Stock).
 """
@@ -17,6 +17,9 @@ ALIASES = {
     "lead_days": {"leaddays", "lead", "leadtime", "deliverytime", "deliverydays", "delivery"},
     "incoming_qty": {"incoming", "incomingqty", "onorder", "incomingunits"},
     "locality": {"locality", "area", "location", "address"},
+    "cold_chain_required": {"coldchainrequired", "requirescoldchain"},
+    "cold_chain_storage": {"coldchainstorage", "coldstorageready"},
+    "cold_chain_transport": {"coldchaintransport", "coldtransportavailable"},
     "latitude": {"latitude", "lat"}, "longitude": {"longitude", "lon", "lng", "long"},
     "usage": {"usage", "dailyusage", "consumption"},
     "date": {"date", "day"}, "used": {"used", "consumed", "dispensed", "unitsused", "quantityused"},
@@ -33,6 +36,15 @@ def to_num(v):
     s = clean(v)
     try: return float(s.replace(",", "")) if s else None
     except ValueError: return None
+
+def to_bool(v):
+    """Parse common yes/no values; return None when the PDF cell is blank/unknown."""
+    s = clean(v)
+    if not s: return None
+    s = s.casefold()
+    if s in {"yes", "y", "true", "1", "required", "available", "ready"}: return True
+    if s in {"no", "n", "false", "0", "not required", "unavailable", "not ready"}: return False
+    return None
 
 def to_date(v):
     s = clean(v)
@@ -67,7 +79,7 @@ def parse_pdf(data):
                          "(optional: Expiry, Lead days, Incoming, Locality, Latitude, Longitude, Usage). A usage table needs Facility, Medicine, Date, Used.")
     return dict(stock=stock, usage=usage, warnings=[f"{skipped} table(s) had unrecognised columns and were skipped."] if skipped else [])
 
-def ingest(c, parsed, replace=True):
+def ingest(c, parsed, replace=False):
     stock, usage, warn = parsed["stock"], parsed["usage"], list(parsed["warnings"])
     dates = [d for d in (to_date(r.get("date")) for r in usage) if d]
     last = max(dates) if dates else None
@@ -88,9 +100,14 @@ def ingest(c, parsed, replace=True):
         f = get_id(c, "facilities", r["facility"], lead_days=int(lead or 5))
         if lead: c.execute("UPDATE facilities SET lead_days=? WHERE id=?", (int(lead), f))
         if r.get("locality"): c.execute("UPDATE facilities SET locality=? WHERE id=?", (r["locality"], f))
+        storage, transport = to_bool(r.get("cold_chain_storage")), to_bool(r.get("cold_chain_transport"))
+        if storage is not None: c.execute("UPDATE facilities SET cold_chain_storage=? WHERE id=?", (int(storage), f))
+        if transport is not None: c.execute("UPDATE facilities SET cold_chain_transport=? WHERE id=?", (int(transport), f))
         lat, lon = to_num(r.get("latitude")), to_num(r.get("longitude"))
         if lat is not None and lon is not None: c.execute("UPDATE facilities SET latitude=?, longitude=? WHERE id=?", (lat, lon, f))
         m = get_id(c, "medicines", r["medicine"])
+        required = to_bool(r.get("cold_chain_required"))
+        if required is not None: c.execute("UPDATE medicines SET cold_chain_required=? WHERE id=?", (int(required), m))
         q, ex = to_num(r.get("stock")), to_num(r.get("expiry_days"))
         if ex is None and (d := to_date(r.get("expiry_days"))): ex = (d - ref).days
         c.execute("INSERT INTO batches(facility_id,medicine_id,quantity,expiry_days,incoming_qty) VALUES(?,?,?,?,?)",
@@ -99,10 +116,35 @@ def ingest(c, parsed, replace=True):
             nums = [None if x == "-" else to_num(x) for x in re.split(r"[\s,;]+", r["usage"]) if x]
             hist[(r["facility"], r["medicine"])] = ([None] * 60 + nums)[-60:]
         pairs.add((r["facility"], r["medicine"]))
-    for (fn, mn), h in hist.items():
+    for (fn, mn), incoming in hist.items():
         f = get_id(c, "facilities", fn, lead_days=5); m = get_id(c, "medicines", mn)
+        h, anchor = incoming, last
+        if not replace:
+            old = c.execute("SELECT day, used FROM usage WHERE facility_id=? AND medicine_id=? ORDER BY day", (f, m)).fetchall()
+            meta = c.execute("SELECT last_date FROM usage_meta WHERE facility_id=? AND medicine_id=?", (f, m)).fetchone()
+            old_anchor = to_date(meta["last_date"]) if meta and meta["last_date"] else None
+            if old:
+                h = [None] * 60
+                if old_anchor and last:
+                    anchor = max(old_anchor, last)
+                    for row in old:
+                        if row["used"] is None: continue
+                        day = old_anchor - datetime.timedelta(days=59 - int(row["day"]))
+                        idx = 59 - (anchor - day).days
+                        if 0 <= idx < 60: h[idx] = row["used"]
+                    for idx, value in enumerate(incoming):
+                        if value is None: continue
+                        day = last - datetime.timedelta(days=59 - idx)
+                        target = 59 - (anchor - day).days
+                        if 0 <= target < 60: h[target] = value
+                else:
+                    h = [value if value is not None else (old[i]["used"] if i < len(old) else None) for i, value in enumerate(incoming)]
+                    anchor = old_anchor or last
         c.execute("DELETE FROM usage WHERE facility_id=? AND medicine_id=?", (f, m))
         c.executemany("INSERT INTO usage VALUES(?,?,?,?)", [(f, m, i, v) for i, v in enumerate(h)])
+        if anchor:
+            c.execute("INSERT INTO usage_meta VALUES(?,?,?) ON CONFLICT(facility_id,medicine_id) DO UPDATE SET last_date=excluded.last_date",
+                      (f, m, anchor.isoformat()))
         if not c.execute("SELECT 1 FROM batches WHERE facility_id=? AND medicine_id=?", (f, m)).fetchone():
             c.execute("INSERT INTO batches(facility_id,medicine_id,quantity,expiry_days,incoming_qty) VALUES(?,?,NULL,NULL,0)", (f, m))
             warn.append(f"Usage found for {fn} / {mn} but no stock row: marked Uncertain.")

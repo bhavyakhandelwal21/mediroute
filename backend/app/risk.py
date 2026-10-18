@@ -1,19 +1,31 @@
 """Rules for one facility+medicine pair: data check, stockout risk, expiry risk, spare stock."""
 import math
 from .forecast import level
+from .ai_engine import outbreak_multiplier_for_pair
 
 def analyse_pair(pr, p):
     h = pr["usage"]
-    o = dict(facility=pr["facility"], medicine=pr["medicine"], status="OK", tags=[], why=[], uncertain=False,
+    o = dict(facility=pr["facility"], medicine=pr["medicine"], locality=pr.get("locality"),
+             latitude=pr.get("latitude"), longitude=pr.get("longitude"), status="OK", tags=[], why=[], uncertain=False,
+             cold_chain_required=pr.get("cold_chain_required", False),
+             cold_chain_storage=pr.get("cold_chain_storage", False),
+             cold_chain_transport=pr.get("cold_chain_transport", False),
              cover=None, level="unknown", target=None, have=None, short=0, short0=0, excess=0, donor=0, donor0=0, order=0, lead=pr["lead"], inc=0, stock=None, fc=0)
-    recorded = sum(x is not None for x in h)
+    observed_usage = pr.get("observed_usage", h)
+    recorded = sum(x is not None for x in observed_usage)
     if recorded < 60:
         o["why"].append(f"{60 - recorded} of 60 consumption days missing; filled with the average of recorded days.")
-    base, spike, ratio, a30, a7 = level(h, p["spike"])
+    base, spike, ratio, a30, a7 = level(h, p["spike"], observed_usage)
     if spike:
         o["tags"].append("Demand spike")
         o["why"].append(f"Demand spike: last 7 days average {a7:.1f}/day is {ratio:.1f}x the 30-day average ({a30:.1f}). Forecast raised to {a7:.1f}/day.")
-    fc = base * p["season"]; o["fc"] = round(fc, 2)
+    surge = outbreak_multiplier_for_pair(
+        pr["medicine"], pr["facility"], pr.get("locality"),
+        p.get("outbreak_category", ""), p.get("outbreak_region", ""), p.get("outbreak_multiplier", 1.0))
+    fc = base * p["season"] * surge; o["fc"] = round(fc, 2)
+    if surge > 1:
+        o["tags"].append("Outbreak demand")
+        o["why"].append(f"Outbreak adjustment: forecast raised by {surge:.2f}x for the matching medicine category and locality.")
 
     qtys = [b["qty"] for b in pr["batches"]]; exps = [b["exp"] for b in pr["batches"]]
     miss_stock = any(q is None for q in qtys); miss_exp = any(e is None for e in exps)
@@ -59,10 +71,15 @@ def analyse_pair(pr, p):
         o["tags"].append("Expiry risk")
         if o["status"] == "OK": o["status"] = "Medium"
 
-    # spare stock this place could give away (keeps its own safety stock; expiring units are always safe to move)
-    spare = max(0, math.floor(stock + inc - need - safety))
-    o["donor"] = o["donor0"] = min(stock, max(spare, exc))
-    o["shelf"] = min_shelf if min_shelf is not None else max(exps)
+    # Spare stock must remain after delivery needs and the 21-day emergency reserve.
+    donor_reserve = fc * max(21, p["safety"])
+    spare = max(0, math.floor(stock + inc - need - donor_reserve))
+    # Transfers never breach the 21-day emergency reserve; expiry risk is surfaced
+    # separately and does not override the reserve constraint.
+    o["donor"] = o["donor0"] = min(stock, spare)
+    # Use the earliest known expiry as a conservative transfer constraint.
+    o["shelf"] = min(exps)
+    o["donor_reserve_days"] = max(0.0, (stock + inc - o["donor"]) / fc) if fc > 0 else 999.0
     if o["status"] == "OK":
         o["why"].append(f"{cover:.1f} days of cover, above the {threshold}-day requirement. No action needed.")
     return o

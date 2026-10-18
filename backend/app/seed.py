@@ -21,6 +21,9 @@ def seed(c, seed_value=7):
     clear(c)
     fid = {n: get_id(c, "facilities", n, lead_days=v[0], locality=v[1], latitude=v[2], longitude=v[3]) for n, v in FACILITIES.items()}
     mid = {n: get_id(c, "medicines", n) for n in MEDICINES}
+    # Synthetic demo data makes no cold-chain capability claims.
+    c.executemany("UPDATE facilities SET cold_chain_storage=0, cold_chain_transport=0 WHERE id=?", [(i,) for i in fid.values()])
+    c.executemany("UPDATE medicines SET cold_chain_required=0 WHERE id=?", [(i,) for i in mid.values()])
     names = list(FACILITIES)
     for i, a in enumerate(names):                      # travel days between facilities
         for b in names[i + 1:]:

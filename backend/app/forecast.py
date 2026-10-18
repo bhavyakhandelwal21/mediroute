@@ -18,10 +18,11 @@ def residual_sd(h, idx):
     e = f - np.array([m * idx[(off + i) % 7] for i in range(28)])
     return float(e.std())
 
-def level(h, spike_x):
+def level(h, spike_x, observed=None):
     """Daily demand level. If the last 7 days are far above the 30-day average, use the 7-day level."""
     a30, a14, a7 = mean(h[-30:]), mean(h[-14:]), mean(h[-7:])
-    n7 = sum(x is not None for x in h[-7:])
+    evidence = h if observed is None else observed
+    n7 = sum(x is not None for x in evidence[-7:])
     spike = n7 >= 5 and a30 > 0 and a7 > spike_x * a30
     return (a7 if spike else a14), spike, (a7 / a30 if a30 else 0.0), a30, a7
 
