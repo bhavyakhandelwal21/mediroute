@@ -27,7 +27,7 @@ export default function App() {
   const s = data?.summary
   return (
     <>
-      <header><h1>Medi<span>Flow</span></h1>
+      <header><h1>Medi<span>Route</span></h1>
         <p className="sub">Medicine inventory optimization: forecasts, stockout and expiry alerts, transfers and reorders. Every recommendation shows its reason.</p></header>
       <main>
         <div className="panel">
