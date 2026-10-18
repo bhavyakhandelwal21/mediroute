@@ -1,4 +1,4 @@
-# MediFlow: Medicine Inventory Optimization System
+# MediRoute: Medicine Inventory Optimization System
 
 Rule-based and statistical (no AI/ML). It forecasts demand, flags stockout and expiry risks, recommends transfers between
 facilities and reorder quantities, and explains every recommendation.
