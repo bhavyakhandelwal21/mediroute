@@ -7,10 +7,9 @@ import DataEntry from './DataEntry'
 import MapPage from './MapPage'
 
 const TABS = [['data', 'Add my data'], ['alerts', 'Alerts'], ['map', 'Map'], ['transfers', 'Transfers'], ['reorders', 'Reorders'],
-  ['forecast', 'Forecast'], ['eval', 'Before / after'], ['quality', 'Data checks'], ['about', 'How it works']]
+  ['forecast', 'Forecast'], ['quality', 'Data checks'], ['about', 'How it works']]
 const SLIDERS = [['spike', 'Spike threshold (7-day vs 30-day)', 1.2, 2.5, 0.1, 'x'], ['safety', 'Safety stock (days)', 1, 7, 1, ' d'],
-  ['buffer', 'Review buffer (days)', 0, 5, 1, ' d'], ['season', 'Seasonal factor', 0.7, 1.5, 0.05, 'x'],
-  ['min_qty', 'Minimum transfer (units)', 0, 50, 5, ''], ['transit', 'Default transit (days)', 1, 5, 1, ' d'], ['excess_x', 'Excess above (x of needed)', 1.2, 3, 0.1, 'x']]
+  ['excess_x', 'Excess above (x of needed)', 1.2, 3, 0.1, 'x']]
 
 export default function App() {
   const [params, setParams] = useState({ spike: 1.5, safety: 3, buffer: 2, season: 1, min_qty: 10, transit: 1, excess_x: 1.5 })
