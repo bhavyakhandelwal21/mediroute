@@ -73,7 +73,10 @@ def load_pairs(c):
         first = g.iloc[0]
         meta = c.execute("""SELECT last_date FROM usage_meta WHERE facility_id=(SELECT id FROM facilities WHERE name=?)
             AND medicine_id=(SELECT id FROM medicines WHERE name=?)""", (f, m)).fetchone()
-        pairs.append(dict(facility=f, medicine=m, locality=first.locality,
+        # pandas represents SQL NULL text values as NaN. Returning that value
+        # in /api/analysis breaks FastAPI's strict JSON serialization (HTTP 500).
+        pairs.append(dict(facility=f, medicine=m,
+                          locality=None if pd.isna(first.locality) else first.locality,
                           latitude=None if pd.isna(first.latitude) else float(first.latitude),
                           longitude=None if pd.isna(first.longitude) else float(first.longitude),
                           usage_anchor=meta["last_date"] if meta else None,

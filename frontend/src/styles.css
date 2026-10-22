@@ -249,3 +249,85 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   .modal-head { flex-direction: column-reverse; }
   .modal-head > button { align-self: flex-end; }
 }
+
+/* Blood-bank inventory */
+.blood-bank h2 { margin-top: 0; }
+.blood-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 20px 0; }
+.blood-summary > div { background: #fff5f5; border: 1px solid #f0d6d6; border-radius: 12px; padding: 16px; }
+.blood-summary strong { display: block; color: #a32c3d; font-size: 28px; }
+.blood-summary span { color: var(--mut); font-size: 13px; }
+.blood-checks { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 0; }
+.blood-table { overflow-x: auto; }
+.arrival-temperature h2 { margin-top: 0; }
+.arrival-temperature .note { display: block; margin-top: 5px; }
+.temperature-result { margin-top: 20px; padding: 16px 18px; border: 1px solid var(--line); border-left: 5px solid var(--ok); border-radius: 12px; background: #f4faf3; }
+.temperature-result h3 { margin: 0 0 8px; }
+.temperature-result p { margin: 7px 0; }
+.temperature-result.mild_excursion, .temperature-result.review_required { border-left-color: var(--high); background: #fffaf2; }
+.temperature-result.severe_breach_review { border-left-color: var(--crit); background: #fff6f5; }
+.blood-bank form { margin-bottom: 20px; }
+.blood-bank .params label .fld { display: block; }
+
+.blood-section-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-top: 22px; }
+.blood-section-heading h3 { margin-top: 0; }
+.blood-target-form { margin: 0 0 22px !important; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(145deg, #fff, #f9fcfb); }
+.blood-target-form .params { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.blood-target-form .fld { display: block; margin-top: 5px; }
+.blood-field-hint { display: block; margin-top: 4px; color: var(--mut); font-size: 12px; }
+.blood-readiness { margin: 16px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; background: #f8fbfa; }
+.blood-readiness legend { padding: 0 5px; color: var(--ink); font-size: 13px; font-weight: 700; }
+.blood-readiness .note { margin: 0 0 8px; font-size: 12.5px; }
+.blood-readiness small { color: var(--mut); }
+.blood-checks { gap: 10px 22px; margin: 8px 0; }
+.blood-checks label { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: #fff; }
+.blood-form-actions { margin-bottom: 0; }
+@media (max-width: 640px) { .blood-target-form { padding: 13px; } .blood-target-form .params { grid-template-columns: 1fr; } }
+
+/* Blood Bank follows the same upload, enter, review flow as medicine data. */
+.blood-bank > p { color: var(--mut); }
+.blood-bank .blood-subtabs { position: sticky; top: 0; z-index: 300; padding: 8px 0; background: rgba(255,255,255,.94); backdrop-filter: blur(8px); }
+.blood-bank .blood-subtabs button { min-height: 42px; }
+.blood-summary > div { background: linear-gradient(145deg, #fff, #f8fbfa); border-color: var(--line); box-shadow: 0 5px 16px rgba(48,73,87,.045); }
+.blood-summary > div:first-child strong { color: var(--ink); }
+.blood-upload-results { border-color: #c9dfc3; background: linear-gradient(145deg, #fbfef9, #fff); }
+.blood-upload-results .blood-card-heading .row { margin: 0; }
+.blood-upload-results .blood-card-heading .row button { white-space: nowrap; }
+.blood-summary > div:nth-child(3) strong { color: #a34837; }
+.blood-summary > div:nth-child(4) strong { color: #5f874c; }
+.blood-entry-card { margin: 16px 0; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.92); box-shadow: var(--shadow); }
+.blood-entry-card > h3:first-child { margin-top: 0; }
+.blood-entry-card > .note { margin-top: 4px; }
+.blood-form-heading { margin: 20px 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--line); color: var(--ink); font-weight: 700; }
+.blood-entry-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 15px; }
+.blood-entry-grid label .fld { display: block; margin-top: 5px; }
+.blood-entry-grid .fld { min-height: 43px; }
+.blood-entry-card form { margin-bottom: 0; }
+.blood-upload-row { align-items: center; }
+.blood-upload-row input[type=file] { flex: 1 1 250px; min-width: 0; padding: 9px; border: 1px dashed var(--line); border-radius: 10px; background: #fbfdfc; color: var(--mut); }
+.blood-inline-check { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; border-radius: 9px; background: #f8fbfa; }
+.blood-card-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
+.blood-card-heading h3 { margin: 0; }
+.blood-card-heading .note { margin: 4px 0 0; }
+.blood-filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #f8fbfa; }
+.blood-filters label { flex: 1 1 190px; }
+.blood-filters .fld { display: block; margin-top: 4px; }
+.blood-readiness { margin-top: 15px; }
+.blood-form-actions { margin-top: 16px; }
+.blood-message { margin: 12px 0; padding: 11px 14px; border: 1px solid #c9dfc3; border-radius: 10px; background: #f3f8f0; color: #416c36; }
+.blood-table th { white-space: nowrap; }
+.blood-map-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 14px 0; }
+.blood-map-controls label { flex: 1 1 280px; }
+.blood-map-controls .fld { display: block; margin-top: 4px; }
+.blood-map { height: 440px; overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: #e8eef0; }
+.blood-map .leaflet-container { height: 100%; width: 100%; background: #e8eef0; }
+.blood-bank .blood-entry-card > .note:last-child { margin-bottom: 0; }
+@media (max-width: 640px) {
+  .blood-entry-card { padding: 14px; }
+  .blood-upload-row { align-items: stretch; }
+  .blood-upload-row > * { width: 100%; }
+  .blood-upload-results .blood-card-heading .row { width: 100%; }
+  .blood-upload-results .blood-card-heading .row button { flex: 1; }
+  .blood-inline-check { justify-content: flex-start; }
+  .blood-map { height: 340px; }
+  .blood-bank .blood-subtabs { top: -1px; }
+}

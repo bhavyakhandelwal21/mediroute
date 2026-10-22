@@ -72,7 +72,8 @@ export const About = () => <>
     ['4. Risk detection', 'Days of cover vs delivery time; first-expiry-first-out batches', 'backend/app/risk.py'],
     ['5. Redistribution', 'Greedy matching with safety checks', 'backend/app/transfer.py'],
     ['6. Reorder quantity', 'Order what is still missing after transfers', 'backend/app/transfer.py'],
-    ['7. Dashboard', 'React + Recharts, served data by FastAPI', 'frontend/src/*, backend/app/main.py']]} />
+    ['7. Dashboard', 'React + Recharts, served data by FastAPI', 'frontend/src/*, backend/app/main.py'],
+    ['8. Arrival temperature', 'Compare delivery readings with configured product ranges and flag review actions', 'frontend/src/ArrivalTemperature.jsx, backend/app/temperature.py']]} />
   <h3>System decision logic (checked in this order)</h3>
   <T head={['#', 'Scenario', 'Condition', 'Action']} rows={[
     ['1', 'Incomplete data', 'Stock or expiry missing', 'Flag for verification, mark uncertain'],
@@ -80,7 +81,8 @@ export const About = () => <>
     ['3', 'Stockout risk', 'Days of cover below delivery time + buffer', 'Flag by severity, check transfers'],
     ['4', 'Expiry risk', 'Batch quantity above expected use before expiry', 'Mark excess, find receivers'],
     ['5', 'Transfer', 'Donor surplus, receiver shortage, safe transit time', 'Recommend transfer after safety checks'],
-    ['6', 'Reorder', 'Shortfall remains after incoming stock and transfers', 'Calculate order quantity']]} />
+    ['6', 'Reorder', 'Shortfall remains after incoming stock and transfers', 'Calculate order quantity'],
+    ['7', 'Arrival temperature', 'Temperature is in range, mildly warm (+2 to +4°C), or outside configured limits', 'Show assessment and escalation guidance; staff decide release or disposal under local procedures']]} />
   <p className="note">Days of cover = (stock + incoming) / daily forecast. Thresholds are the sliders above.</p>
   <h3>Expected impact</h3>
   <p className="why">Intended outcomes: fewer shortages, less expiry wastage, better availability, better use of resources and transparent decisions. These still need to be tested. The Before / after tab only uses sample or typed data, so it shows the method, not real-world proof.</p>

@@ -438,6 +438,8 @@ def _deterministic_memo(facts: dict[str, Any]) -> str:
 
 def _openai_memo(facts: dict[str, Any]) -> Optional[str]:
     """Optionally request constrained wording from an OpenAI-compatible API."""
+    if os.getenv("MEDIROUTE_OFFLINE") == "1":
+        return None
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None

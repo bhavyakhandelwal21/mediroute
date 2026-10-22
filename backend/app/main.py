@@ -2,6 +2,8 @@
 from typing import Optional
 from datetime import date
 import pathlib
+import os
+from fastapi.staticfiles import StaticFiles
 import pandas as pd
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
@@ -21,6 +23,7 @@ from .ai_engine import (
     load_nlem_catalog,
     normalize_drug_name,
 )
+from .temperature import router as temperature_router
 
 SAMPLE_PDF = pathlib.Path(__file__).resolve().parent.parent / "samples" / "sample_hospital_report.pdf"
 
@@ -256,3 +259,19 @@ async def upload_pdf(file: UploadFile = File(...), replace: bool = Form(False)):
 @app.get("/api/sample-pdf")
 def sample_pdf():
     return FileResponse(SAMPLE_PDF, media_type="application/pdf", filename="sample_hospital_report.pdf")
+
+
+@app.get("/api/runtime")
+def runtime():
+    return {"offline": os.getenv("MEDIROUTE_OFFLINE") == "1"}
+
+
+from .blood import router as blood_router
+app.include_router(blood_router)
+app.include_router(temperature_router)
+
+
+# Register after API routes so the packaged UI and API share one local origin.
+FRONTEND_DIST = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if (FRONTEND_DIST / "index.html").is_file():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")

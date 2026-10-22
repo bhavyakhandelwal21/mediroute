@@ -117,7 +117,7 @@ export default function DataEntry({ onChange, onDataAdded, onOutbreak }) {
       <textarea className="fld" rows={3} value={f.usage} onChange={set('usage')} placeholder="e.g. 20 22 19 25 - 21 23 18 ... (at least 7 days; the last 60 are used)" /></label>
     <div className="row"><button className="p" onClick={add}>Add record</button>
       <button onClick={() => api.sample(Math.floor(Math.random() * 9999)).then(() => done('New synthetic sample data loaded.'))}>Load sample data</button>
-      <button onClick={() => api.clear().then(() => done('All data cleared.'))}>Clear all data</button></div>
+      <button onClick={() => api.clear().then(() => done('Medicine data cleared. Blood inventory is managed in Blood bank.'))}>Clear medicine data</button></div>
     <p className="note" aria-live="polite">{msg}</p>
     <hr /><h3>Outbreak bulletin</h3>
     <p className="note">Paste a local advisory to extract a demand multiplier. Review the parsed locality and category before applying it.</p>

@@ -15,10 +15,11 @@ const dist = (a, b) => {   // straight-line distance in km (haversine)
 }
 
 // Road route from the free OSRM demo server. We ask for alternatives and keep the one with the shortest distance.
-async function roadRoute(a, b) {
+async function roadRoute(a, b, offline) {
   try {
+    if (offline || !navigator.onLine) throw new Error('Offline')
     const url = `https://router.project-osrm.org/route/v1/driving/${a.longitude},${a.latitude};${b.longitude},${b.latitude}?overview=full&geometries=geojson&alternatives=true`
-    const j = await (await fetch(url)).json()
+    const j = await (await fetch(url, { signal: AbortSignal.timeout(5000) })).json()
     const best = [...j.routes].sort((x, y) => x.distance - y.distance)[0]
     return { line: best.geometry.coordinates.map(([x, y]) => [y, x]), km: best.distance / 1000, min: best.duration / 60, road: true }
   } catch {
@@ -32,7 +33,7 @@ function Fit({ pts }) {
   return null
 }
 
-export default function MapPage({ rows, refreshKey, recommendedTransfer }) {
+export default function MapPage({ rows, refreshKey, recommendedTransfer, offline = true }) {
   const [facs, setFacs] = useState([])
   const [med, setMed] = useState('')
   const [loc, setLoc] = useState('all')
@@ -59,7 +60,7 @@ export default function MapPage({ rows, refreshKey, recommendedTransfer }) {
       setRoute(null)
       return alert(`Add latitude and longitude for ${missing.join(' and ')} in Add my data (or include them in the PDF) before routing.`)
     }
-    setBusy(true); setRoute({ ...(await roadRoute(a, b)), a: a.name, b: b.name }); setBusy(false)
+    setBusy(true); setRoute({ ...(await roadRoute(a, b, offline)), a: a.name, b: b.name }); setBusy(false)
   }
   const byName = (n) => facs.find((f) => f.name === n)
   const nearestExcess = () => {
@@ -117,10 +118,10 @@ export default function MapPage({ rows, refreshKey, recommendedTransfer }) {
     setFrom(donor.name)
     setTo(receiver.name)
     setBusy(true)
-    roadRoute(donor, receiver)
+    roadRoute(donor, receiver, offline)
       .then((result) => setRoute({ ...result, a: donor.name, b: receiver.name }))
       .finally(() => setBusy(false))
-  }, [recommendedTransfer, facs])
+  }, [recommendedTransfer, facs, offline])
 
   if (!meds.length) return <p className="empty">Add data first, then the map shows each hospital.</p>
   return <>
@@ -138,7 +139,7 @@ export default function MapPage({ rows, refreshKey, recommendedTransfer }) {
         </option>)}</select></label>
     </div>
     <div className="row">
-      <button className="p" disabled={busy || !from || !to || from === to} onClick={() => go(byName(from), byName(to))}>{busy ? 'Finding route...' : 'Show shortest route'}</button>
+      <button className="p" disabled={busy || !from || !to || from === to} onClick={() => go(byName(from), byName(to))}>{busy ? 'Finding route...' : offline ? 'Show straight-line distance' : 'Show shortest route'}</button>
       <button disabled={busy || !to} onClick={nearestExcess}>Nearest hospital with excess, to "Route to"</button>
       {route && <button onClick={() => setRoute(null)}>Clear route</button>}
     </div>
@@ -153,7 +154,7 @@ export default function MapPage({ rows, refreshKey, recommendedTransfer }) {
     </section>}
     <div style={{ height: 460, minWidth: 320 }}>
       <MapContainer center={[28.65, 77.35]} zoom={11} style={{ height: '100%', borderRadius: 10 }}>
-        <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {!offline && <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />}
         <Fit pts={shown.map((f) => [f.latitude, f.longitude])} />
         {route && <Polyline positions={route.line} pathOptions={{ color: '#1565c0', weight: 5 }} />}
         {shown.map((f) => { const r = info(f), c = col(f); return (
