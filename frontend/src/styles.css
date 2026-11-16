@@ -171,6 +171,73 @@ th:first-child { border-radius: 10px 0 0 0; }
 th:last-child { border-radius: 0 10px 0 0; }
 tbody tr:hover { background: #f8fbfa; }
 
+/* Transfer recommendations and order entry */
+.transfer-page-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
+.transfer-page-heading h2 { margin: 0; }
+.transfer-page-heading .note { margin: 4px 0 0; }
+.transfer-count { padding: 6px 11px; border: 1px solid var(--line); border-radius: 99px; background: #fff; color: var(--mut); font-size: 12px; font-weight: 700; }
+.transfer-list { display: grid; gap: 16px; }
+.transfer-card { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 5px 18px rgba(48, 73, 87, .055); }
+.transfer-card-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 14px; }
+.transfer-kicker { color: var(--acc-dark); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.transfer-card-heading h3 { margin: 2px 0 0; font-size: 20px; }
+.transfer-quantity { min-width: 150px; padding: 9px 13px; border: 1px solid #d8e8d2; border-radius: 11px; background: #f5faf2; text-align: right; }
+.transfer-quantity span, .transfer-quantity b { display: block; }
+.transfer-quantity span { color: var(--mut); font-size: 11px; }
+.transfer-quantity b { color: #456b3b; font-size: 16px; }
+.transfer-route { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 16px 0; padding: 13px 14px; border: 1px solid #e8eff1; border-radius: 12px; background: #f8fbfa; }
+.transfer-route-stop span, .transfer-route-stop b { display: block; }
+.transfer-route-stop span { color: var(--mut); font-size: 11px; }
+.transfer-route-stop b { overflow-wrap: anywhere; font-size: 14px; }
+.transfer-route-arrow { color: var(--acc-dark); font-size: 20px; font-weight: 700; }
+.transit-badge { padding: 5px 9px; border-radius: 99px; background: #eaf2f7; color: #44677b; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.transfer-explanation { margin: 0 0 12px; }
+.transfer-explanation > b { font-size: 13px; }
+.transfer-explanation p { margin: 3px 0 0; color: var(--mut); font-size: 13px; }
+.transfer-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.transfer-facts > div { min-width: 0; padding: 10px 11px; border: 1px solid #e8eff1; border-radius: 10px; background: #fbfdfc; }
+.transfer-facts span, .transfer-facts b { display: block; }
+.transfer-facts span { color: var(--mut); font-size: 10px; }
+.transfer-facts b { margin-top: 3px; font-size: 12px; overflow-wrap: anywhere; }
+.transfer-cold-note { margin: 10px 0; color: var(--mut); font-size: 12px; }
+.cold-chain-confirmation { margin: 12px 0; padding: 12px 14px; border: 1px solid #efd9a5; border-radius: 11px; background: #fffaf0; color: #735817; font-size: 12px; }
+.cold-chain-confirmation p { margin: 0 0 8px; }
+.cold-chain-confirmation label { display: flex; align-items: center; gap: 8px; color: #604a1d; }
+.transfer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 14px; }
+.order-success { padding: 7px 11px; border-radius: 99px; background: #edf7e9; color: #3d6b32; font-size: 12px; font-weight: 700; }
+.audit-memo { display: grid; gap: 4px; margin: 12px 0 0; padding: 12px 14px; border-left: 3px solid var(--blue); border-radius: 0 10px 10px 0; background: #f6fafc; color: var(--mut); font-size: 13px; }
+.audit-memo b { color: var(--ink); font-size: 12px; }
+.order-form { margin-top: 16px; padding: 16px; border: 1px solid #cfdfe6; border-radius: 13px; background: linear-gradient(145deg, #f8fbfc, #f4f8f7); }
+.order-form-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 13px; }
+.order-form-heading h4 { margin: 0; font-size: 16px; }
+.order-form-heading p { margin: 3px 0 0; color: var(--mut); font-size: 12px; }
+.order-cancel { padding: 5px 9px; font-size: 12px; }
+.order-form-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.order-form-fields label { min-width: 0; color: var(--ink); font-size: 12px; font-weight: 700; }
+.order-form-fields input { display: block; width: 100%; min-width: 0; height: 42px; margin-top: 5px; padding: 8px 10px; border: 1px solid #cbdce3; border-radius: 9px; background: #fff; color: var(--ink); font: inherit; font-weight: 400; }
+.order-form-fields input:focus { border-color: #8db2c3; outline: 3px solid rgba(161, 195, 222, .35); }
+.order-price-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #dce7eb; }
+.order-price-summary > div { display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 10px; }
+.order-price-summary span { color: var(--mut); font-size: 12px; }
+.order-price-summary b { color: var(--ink); font-size: 21px; }
+.order-price-summary small { grid-column: 1 / -1; color: var(--mut); font-size: 11px; }
+.order-price-note { margin: 8px 0 0; color: var(--mut); font-size: 11px; }
+.order-form .err { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
+@media (max-width: 760px) {
+  .transfer-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .order-form-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .transfer-route { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .transit-badge { grid-column: 1 / -1; justify-self: start; }
+}
+@media (max-width: 520px) {
+  .transfer-card { padding: 14px; }
+  .transfer-route { grid-template-columns: minmax(0, 1fr); }
+  .transfer-route-arrow { transform: rotate(90deg); justify-self: start; }
+  .order-form-fields { grid-template-columns: 1fr; }
+  .order-price-summary { align-items: stretch; flex-direction: column; }
+  .order-price-summary button { width: 100%; }
+}
+
 .chip {
   display: inline-block;
   padding: 2px 10px;

@@ -46,24 +46,64 @@ export function Transfers({ items }) {
     } catch (e) { setRequestErrors((old) => ({ ...old, [i]: e.message })) }
   }
   const setEmail = (i, key, value) => setEmails((old) => ({ ...old, [i]: { ...old[i], [key]: value } }))
-  return <table><thead><tr><th>Medicine</th><th>From to To</th><th>Qty</th><th>Why this transfer / audit memo</th></tr></thead>
-    <tbody>{items.map((t, i) => <tr key={i}><td><b>{t.medicine}</b></td>
-      <td>{t.from_} to {t.to}<br /><span className="note">{t.transit} day transit</span></td><td><b>{t.qty}</b></td>
-      <td><p className="why">{t.why}</p><p className="note">Source expires in {t.source_expiry_days} d · recipient cover {t.target_stockout_days.toFixed(1)} d · donor reserve after transfer ≥ {t.donor_reserve_days.toFixed(1)} d · {t.transit_distance_km == null ? 'Coordinates missing; road distance unavailable.' : `${t.transit_distance_km} km straight-line estimate`}</p>
-        {t.is_cold_chain ? <><p className="note">Cold-chain eligibility passed: donor transport and recipient storage are marked ready for 2–8°C handling. This is a recorded capability check, not live temperature monitoring.</p>
-          <label className="note"><input type="checkbox" checked={Boolean(coldChain[i])} onChange={(e) => setColdChain((old) => ({ ...old, [i]: e.target.checked }))} /> Confirm cold-chain handling for this shipment before dispatch</label><br /></> : <p className="note">This medicine is not marked as requiring cold-chain handling.</p>}
-        <button type="button" disabled={t.transit_distance_km == null} onClick={() => makeMemo(t, i)}>Generate audit memo</button>
-        {errors[i] && <p className="err">{errors[i]}</p>}{memos[i] && <p className="why" aria-live="polite">{memos[i]}</p>}
-        {!emailForms[i] && !requested[i] && <button type="button" className="p" onClick={() => setEmailForms((old) => ({ ...old, [i]: true }))}>Place order</button>}
-        {emailForms[i] && !requested[i] && <div className="order-email-fields">
-          <label>Donor email<input type="email" required value={emails[i]?.donor || ''} onChange={(e) => setEmail(i, 'donor', e.target.value)} placeholder="supplier@hospital.org" /></label>
-          <label>Requesting hospital email<input type="email" required value={emails[i]?.requester || ''} onChange={(e) => setEmail(i, 'requester', e.target.value)} placeholder="requester@hospital.org" /></label>
-          <label>Unit price (INR)<input type="number" min="0" step="0.01" required value={emails[i]?.unit_price ?? '20'} onChange={(e) => setEmail(i, 'unit_price', e.target.value)} /></label>
-          <p className="note">Indicative demo estimate ₹{Number(emails[i]?.unit_price ?? 20).toFixed(2)} × {t.qty} units = <b>₹{(Number(emails[i]?.unit_price ?? 20) * t.qty).toFixed(2)}</b>. Confirm the actual price with the donor.</p>
-          <button type="button" className="p" onClick={() => placeOrder(t, i)}>Submit order request</button>
-        </div>}
-        {requested[i] && <span className="chip">Order requested</span>}
-        {requestErrors[i] && <p className="err">{requestErrors[i]}</p>}</td></tr>)}</tbody></table>
+  return <section className="transfer-recommendations">
+    <div className="transfer-page-heading">
+      <div><h2>Recommended medicine transfers</h2><p className="note">Review the suggested donor, quantity, and delivery estimate. Place an order when you’re ready.</p></div>
+      <span className="transfer-count">{items.length} {items.length === 1 ? 'recommendation' : 'recommendations'}</span>
+    </div>
+    <div className="transfer-list">{items.map((t, i) => {
+      const unitPrice = Number(emails[i]?.unit_price ?? 20)
+      const totalPrice = unitPrice * t.qty
+      return <article className="transfer-card" key={`${t.medicine}-${t.from_}-${t.to}-${i}`}>
+        <div className="transfer-card-heading">
+          <div><span className="transfer-kicker">Medicine transfer</span><h3>{t.medicine}</h3></div>
+          <div className="transfer-quantity"><span>Recommended quantity</span><b>{t.qty.toLocaleString()} units</b></div>
+        </div>
+
+        <div className="transfer-route">
+          <div className="transfer-route-stop"><span>Donor hospital</span><b>{t.from_}</b></div>
+          <span className="transfer-route-arrow" aria-hidden="true">→</span>
+          <div className="transfer-route-stop"><span>Requesting hospital</span><b>{t.to}</b></div>
+          <span className="transit-badge">{t.transit} day{t.transit === 1 ? '' : 's'} estimated</span>
+        </div>
+
+        <div className="transfer-explanation"><b>Why this is recommended</b><p>{t.why}</p></div>
+        <div className="transfer-facts">
+          <div><span>Donor stock expires in</span><b>{t.source_expiry_days} days</b></div>
+          <div><span>Requesting hospital cover</span><b>{t.target_stockout_days.toFixed(1)} days</b></div>
+          <div><span>Donor reserve after transfer</span><b>≥ {t.donor_reserve_days.toFixed(1)} days</b></div>
+          <div><span>Estimated distance</span><b>{t.transit_distance_km == null ? 'Not available' : `${t.transit_distance_km} km, straight-line`}</b></div>
+        </div>
+
+        {t.is_cold_chain ? <div className="cold-chain-confirmation">
+          <p>Cold-chain handling is required. Donor transport and recipient storage are marked ready for 2–8°C; this is a recorded capability check, not live temperature monitoring.</p>
+          <label><input type="checkbox" checked={Boolean(coldChain[i])} onChange={(e) => setColdChain((old) => ({ ...old, [i]: e.target.checked }))} /> I confirm cold-chain handling will be arranged</label>
+        </div> : <p className="transfer-cold-note">Cold-chain handling is not required for this medicine.</p>}
+
+        <div className="transfer-actions">
+          <button type="button" disabled={t.transit_distance_km == null} onClick={() => makeMemo(t, i)}>Generate audit memo</button>
+          {!emailForms[i] && !requested[i] && <button type="button" className="p" onClick={() => setEmailForms((old) => ({ ...old, [i]: true }))}>Place order</button>}
+          {requested[i] && <span className="order-success" role="status">Order request sent</span>}
+        </div>
+        {errors[i] && <p className="err" role="alert">{errors[i]}</p>}
+        {memos[i] && <p className="audit-memo" aria-live="polite"><b>Audit memo</b>{memos[i]}</p>}
+
+        {emailForms[i] && !requested[i] && <form className="order-form" onSubmit={(e) => { e.preventDefault(); placeOrder(t, i) }}>
+          <div className="order-form-heading"><div><h4>Send an order request</h4><p>Both hospitals will receive the request details by email.</p></div>
+            <button type="button" className="order-cancel" onClick={() => setEmailForms((old) => ({ ...old, [i]: false }))}>Cancel</button></div>
+          <div className="order-form-fields">
+            <label>Donor’s email<input type="email" autoComplete="email" required value={emails[i]?.donor || ''} onChange={(e) => setEmail(i, 'donor', e.target.value)} placeholder="supplier@hospital.org" /></label>
+            <label>Requesting hospital’s email<input type="email" autoComplete="email" required value={emails[i]?.requester || ''} onChange={(e) => setEmail(i, 'requester', e.target.value)} placeholder="requester@hospital.org" /></label>
+            <label>Estimated price per unit (₹)<input type="number" min="0" step="0.01" required value={emails[i]?.unit_price ?? '20'} onChange={(e) => setEmail(i, 'unit_price', e.target.value)} /></label>
+          </div>
+          <div className="order-price-summary"><div><span>Estimated total</span><b>₹{Number.isFinite(totalPrice) ? totalPrice.toFixed(2) : '0.00'}</b><small>₹{unitPrice.toFixed(2)} × {t.qty.toLocaleString()} units</small></div>
+            <button type="submit" className="p">Send order request</button></div>
+          <p className="order-price-note">Price is an estimate. Confirm the final price with the donor before payment.</p>
+          {requestErrors[i] && <p className="err" role="alert">{requestErrors[i]}</p>}
+        </form>}
+      </article>
+    })}</div>
+  </section>
 }
 
 export function TransferOrders() {
