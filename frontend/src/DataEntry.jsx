@@ -22,7 +22,25 @@ export default function DataEntry({ onChange, onDataAdded, onOutbreak }) {
   const [match, setMatch] = useState(null)
   const [outbreakText, setOutbreakText] = useState('')
   const [outbreak, setOutbreak] = useState(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncReport, setSyncReport] = useState(null)
   const load = () => api.records().then(setRecs)
+  const sync = async () => {
+    if (syncing) return
+    setSyncing(true)
+    setSyncReport(null)
+    setMsg('')
+    try {
+      const result = await api.syncNetwork()
+      setSyncReport(result)
+      await load()
+      onChange()
+    } catch (e) {
+      setMsg(`Could not sync hospital data: ${e.message}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
   useEffect(() => { load() }, [])
   const done = (m) => { setMsg(m); load(); onChange() }
   const set = (k) => (e) => setF((previous) => ({ ...previous, [k]: e.target.value }))
@@ -82,7 +100,55 @@ export default function DataEntry({ onChange, onDataAdded, onOutbreak }) {
     finally { setUploading(false) }
   }
 
+  const groupedRecords = recs.reduce((groups, record) => {
+    const facility = record.facility || 'Unknown hospital'
+    ;(groups[facility] ||= []).push(record)
+    return groups
+  }, {})
+  const facilityCount = Object.keys(groupedRecords).length
+  const totalUnits = recs.reduce((total, record) => total + (Number(record.stock) || 0), 0)
+
   return <>
+    <section className="inventory-overview" aria-labelledby="inventory-heading">
+      <div className="inventory-overview-head">
+        <div>
+          <h2 id="inventory-heading">Hospital inventory</h2>
+          <p className="note">A simple view of the medicine records currently saved in MediRoute.</p>
+        </div>
+        <button className="p" onClick={sync} disabled={syncing}>
+          {syncing ? 'Syncing hospital data…' : 'Sync latest hospital data'}
+        </button>
+      </div>
+      <p className="sync-explainer">Sync replaces the local medicine inventory with the latest data from connected hospital databases.</p>
+      <div className="inventory-summary" aria-label="Inventory totals">
+        <div><strong>{facilityCount}</strong><span>Hospitals with data</span></div>
+        <div><strong>{recs.length}</strong><span>Medicine records</span></div>
+        <div><strong>{totalUnits.toLocaleString()}</strong><span>Units in stock</span></div>
+      </div>
+      {syncReport && <div className="sync-report" role="status">
+        <h3>Latest sync</h3>
+        <p className="note">Loaded {syncReport.total_stock_rows} medicine stock records from {syncReport.total_facilities} hospitals.</p>
+        <ul>{syncReport.nodes.map((node) => {
+          const noRows = node.status === 'synced' && !node.facilities && !node.stock_items
+          return <li key={node.node}>
+            <b>{node.node}</b>
+            <span className={`sync-state ${node.status === 'synced' ? (noRows ? 'empty' : 'good') : 'failed'}`}>
+              {node.status !== 'synced' ? 'Could not connect' : noRows ? 'Connected · no inventory data' : `${node.stock_items} medicine records`}
+            </span>
+          </li>
+        })}</ul>
+      </div>}
+      {!recs.length ? <p className="inventory-empty">No medicine inventory is saved yet. Sync hospital data or add a record below.</p>
+        : <div className="inventory-hospitals">
+          {Object.entries(groupedRecords).map(([facility, records]) => <article className="inventory-hospital" key={facility}>
+            <h3>{facility}<span>{records.length} {records.length === 1 ? 'medicine' : 'medicines'}</span></h3>
+            <ul>{records.map((record) => <li key={record.id}>
+              <b>{record.medicine}</b>
+              <span>{record.stock == null ? 'Stock not recorded' : `${Number(record.stock).toLocaleString()} units`}</span>
+            </li>)}</ul>
+          </article>)}
+        </div>}
+    </section>
     <h3 style={{ margin: '0 0 4px' }}>Upload a PDF</h3>
     <p className="note">Use a text-based PDF (exported from Excel or Word, not a scan) with a stock table (Facility, Medicine, Stock; optional Expiry, Lead days, Incoming, Locality, Latitude, Longitude, Usage, Cold chain required, Cold-chain storage, Cold-chain transport)
       and/or a usage table (Facility, Medicine, Date, Used). <a href="/api/sample-pdf">Download a sample PDF</a>. Dates like 31/03/2026 are read day first.</p>

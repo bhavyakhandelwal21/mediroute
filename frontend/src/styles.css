@@ -189,6 +189,37 @@ tbody tr:hover { background: #f8fbfa; }
 ul.why { padding-left: 17px; }
 .empty { padding: 20px 4px; color: var(--mut); }
 
+.inventory-overview {
+  margin: 0 0 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fff, #f8fbfa);
+}
+.inventory-overview-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 14px; }
+.inventory-overview-head h2 { margin: 0; font-size: 21px; }
+.inventory-overview-head .note { margin: 4px 0 0; }
+.sync-explainer { margin: 14px 0; color: var(--mut); font-size: 13px; }
+.inventory-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }
+.inventory-summary > div { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.inventory-summary strong { display: block; font-size: 24px; line-height: 1.2; }
+.inventory-summary span { color: var(--mut); font-size: 12px; }
+.inventory-hospitals { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
+.inventory-hospital { padding: 13px 15px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.inventory-hospital h3 { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin: 0 0 8px; font-size: 15px; }
+.inventory-hospital h3 span { color: var(--mut); font-size: 12px; font-weight: 500; }
+.inventory-hospital ul, .sync-report ul { margin: 0; padding: 0; list-style: none; }
+.inventory-hospital li, .sync-report li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid #edf2f3; font-size: 13px; }
+.inventory-hospital li span { color: var(--mut); white-space: nowrap; }
+.inventory-empty { margin: 12px 0 0; padding: 14px; border-radius: 11px; background: #f8fbfa; color: var(--mut); }
+.sync-report { margin-top: 14px; padding: 13px 15px; border: 1px solid #cfe0c8; border-radius: 12px; background: #f7fbf4; }
+.sync-report h3 { margin: 0; font-size: 15px; }
+.sync-report .note { margin: 3px 0 8px; }
+.sync-state { text-align: right; }
+.sync-state.good { color: var(--ok); }
+.sync-state.empty { color: var(--mut); }
+.sync-state.failed { color: var(--crit); }
+
 .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 10px 0; font-size: 13.5px; }
 .route-rationale {
   margin: 4px 0 12px;
@@ -248,6 +279,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   .pdf-modal { padding: 16px; border-radius: 16px; }
   .modal-head { flex-direction: column-reverse; }
   .modal-head > button { align-self: flex-end; }
+  .inventory-overview { padding: 15px; }
+  .inventory-overview-head > button { width: 100%; }
 }
 
 /* Blood-bank inventory */

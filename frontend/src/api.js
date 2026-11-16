@@ -35,6 +35,7 @@ export const api = {
   transferOrders: () => call('/api/transfer-orders'),
   createTransferOrder: (body) => call('/api/transfer-orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
   updateTransferOrder: (id, status) => call('/api/transfer-orders/' + id + '?' + qs({ status }), { method: 'PATCH' }),
+  syncNetwork: () => call('/api/sync-network', { method: 'POST' }),
   clear: () => call('/api/clear', { method: 'POST' }),
 }
 
