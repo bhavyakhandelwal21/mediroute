@@ -1,3 +1,4 @@
+
 """FastAPI server. Run:  uvicorn app.main:app --reload"""
 from typing import Optional
 from datetime import date
@@ -12,6 +13,7 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from .supabase_sync import sync_all_hospitals
 from . import db
 from .seed import seed
 from .forecast import level, curve, fill
@@ -381,3 +383,37 @@ app.include_router(temperature_router)
 FRONTEND_DIST = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if (FRONTEND_DIST / "index.html").is_file():
     app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
+
+# --- Multi-Hospital Decentralized Supabase Sync ---
+DYNAMIC_NODES = []
+
+class NewHospitalNode(BaseModel):
+    name: str
+    url: str
+    key: str
+
+@app.post("/api/register-node")
+def register_hospital_node(node: NewHospitalNode):
+    """Registers a 3rd+ hospital (e.g., Lotus Health Centre) dynamically."""
+    DYNAMIC_NODES.append({
+        "id": len(DYNAMIC_NODES) + 3,
+        "name": node.name,
+        "url": node.url,
+        "key": node.key,
+    })
+    return {"status": "registered", "node": node.name}
+
+@app.post("/api/sync-network")
+def sync_network():
+    """Syncs Sunrise Hospital, Green Valley Clinic, and any 3rd+ hospital node."""
+    data = sync_all_hospitals(extra_nodes=DYNAMIC_NODES)
+    return {
+        "status": "complete",
+        "nodes": data["sync_report"],
+        "total_facilities": len(data["facilities"]),
+        "total_stock_rows": len(data["stock_register"]),
+        "total_usage_rows": len(data["daily_usage"]),
+        "facilities": data["facilities"],
+        "stock_register": data["stock_register"],
+        "daily_usage": data["daily_usage"],
+    }
