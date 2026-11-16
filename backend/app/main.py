@@ -379,11 +379,6 @@ app.include_router(blood_router)
 app.include_router(temperature_router)
 
 
-# Register after API routes so the packaged UI and API share one local origin.
-FRONTEND_DIST = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "dist"
-if (FRONTEND_DIST / "index.html").is_file():
-    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
-
 # --- Multi-Hospital Decentralized Supabase Sync ---
 DYNAMIC_NODES = []
 
@@ -417,3 +412,9 @@ def sync_network():
         "stock_register": data["stock_register"],
         "daily_usage": data["daily_usage"],
     }
+
+
+# Mount the frontend last so its catch-all route does not shadow API endpoints.
+FRONTEND_DIST = pathlib.Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if (FRONTEND_DIST / "index.html").is_file():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
