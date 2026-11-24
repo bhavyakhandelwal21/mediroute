@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
 
-export const Chip = ({ s }) => <span className={`chip ${s}`}>{s}</span>
-const Why = ({ list }) => <ul className="why">{list.map((w, i) => <li key={i}>{w}</li>)}</ul>
+const STATUS_LABEL = { Critical: 'Urgent', High: 'Needs attention', Medium: 'Watch', Uncertain: 'Check data', OK: 'No action needed' }
+export const Chip = ({ s }) => <span className={`chip ${s}`} title={s}>{STATUS_LABEL[s] || s}</span>
+const explainStockTerms = (text) => text
+  .replace(/(\d+(?:\.\d+)?) days of cover, above the (\d+(?:\.\d+)?)-day requirement\./i,
+    '$1 days of stock remaining, above the recommended minimum of $2 days.')
+  .replace(/days of cover/gi, 'days of stock remaining')
+const Why = ({ list }) => <ul className="why">{list.map((w, i) => <li key={i}>{explainStockTerms(w)}</li>)}</ul>
 const ORDER = { Critical: 0, High: 1, Medium: 2, Uncertain: 3, OK: 4 }
 
 export function Alerts({ rows }) {
@@ -11,15 +16,17 @@ export function Alerts({ rows }) {
   const list = rows.filter((r) => fac === 'all' || r.facility === fac)
     .sort((a, b) => ORDER[a.status] - ORDER[b.status] || (a.cover ?? 999) - (b.cover ?? 999))
   return <>
-    <label>Facility <select value={fac} onChange={(e) => setFac(e.target.value)}>
+    <div className="alert-intro"><b>Medicine stock check</b><p>See which medicines may run low, need monitoring, or have incomplete records. “Stock lasts” estimates how many days current and incoming stock will meet expected use.</p>
+      <div className="alert-key"><span><i className="urgent" />Urgent / needs attention: act soon</span><span><i className="watch" />Watch: keep an eye on stock</span><span><i className="ok" />No action needed: stock looks sufficient</span><span><i className="check" />Check data: verify records</span></div></div>
+    <label>Show facility <select value={fac} onChange={(e) => setFac(e.target.value)}>
       <option value="all">All</option>{facs.map((f) => <option key={f}>{f}</option>)}</select></label>
-    <table><thead><tr><th>Facility / medicine</th><th>Status</th><th>Cover</th><th>Forecast</th><th>Why</th></tr></thead>
+    <div className="wrap"><table><thead><tr><th>Facility / medicine</th><th>Status</th><th>Stock lasts</th><th>Expected use</th><th>Details</th></tr></thead>
       <tbody>{list.map((r, i) => <tr key={i}>
         <td><b>{r.medicine}</b><br />{r.facility}</td><td><Chip s={r.status} /></td>
-        <td>{r.cover != null ? `${r.cover} d` : '-'}</td><td>{r.fc}/day</td><td><Why list={r.why} /></td></tr>)}</tbody></table></>
+        <td>{r.cover != null ? `${r.cover} days` : 'Unknown'}</td><td>{r.fc} units/day</td><td><Why list={r.why} /></td></tr>)}</tbody></table></div></>
 }
 
-export function Transfers({ items }) {
+export function Transfers({ items, rows = [] }) {
   const [memos, setMemos] = useState({})
   const [coldChain, setColdChain] = useState({})
   const [errors, setErrors] = useState({})
@@ -27,7 +34,8 @@ export function Transfers({ items }) {
   const [requestErrors, setRequestErrors] = useState({})
   const [emailForms, setEmailForms] = useState({})
   const [emails, setEmails] = useState({})
-  if (items.length === 0) return <p className="empty">No feasible transfers with the current settings.</p>
+  const needs = rows.filter((r) => ['Critical', 'High'].includes(r.status))
+  if (items.length === 0 && needs.length === 0) return <p className="empty">No transfer recommendations or urgent medicine shortages right now.</p>
   const makeMemo = async (t, i) => {
     try {
       const result = await api.transferJustification({ source_name: t.from_, target_name: t.to, item_name: t.medicine,
@@ -47,11 +55,18 @@ export function Transfers({ items }) {
   }
   const setEmail = (i, key, value) => setEmails((old) => ({ ...old, [i]: { ...old[i], [key]: value } }))
   return <section className="transfer-recommendations">
+    {needs.length > 0 && <section className="transfer-needs"><div><h3>Hospitals that need stock</h3><p>These medicines are running low, even if a suitable donor has not been found yet.</p></div>
+      <div className="transfer-needs-list">{needs.map((r, i) => <article key={`${r.facility}-${r.medicine}-${i}`}>
+        <div><b>{r.medicine || 'Medicine name missing'}</b><span>{r.facility}</span></div>
+        <span className={`chip ${r.status}`}>{r.status === 'Critical' ? 'Urgent' : 'Needs attention'}</span>
+        <div><b>{r.cover == null ? 'Unknown' : `${r.cover} days`}</b><span>estimated stock remaining</span></div>
+        <div><b>{r.order > 0 ? `${Math.ceil(r.order)} units` : 'Review stock'}</b><span>suggested reorder</span></div>
+      </article>)}</div></section>}
     <div className="transfer-page-heading">
       <div><h2>Recommended medicine transfers</h2><p className="note">Review the suggested donor, quantity, and delivery estimate. Place an order when you’re ready.</p></div>
       <span className="transfer-count">{items.length} {items.length === 1 ? 'recommendation' : 'recommendations'}</span>
     </div>
-    <div className="transfer-list">{items.map((t, i) => {
+    {items.length > 0 ? <div className="transfer-list">{items.map((t, i) => {
       const unitPrice = Number(emails[i]?.unit_price ?? 20)
       const totalPrice = unitPrice * t.qty
       return <article className="transfer-card" key={`${t.medicine}-${t.from_}-${t.to}-${i}`}>
@@ -102,7 +117,7 @@ export function Transfers({ items }) {
           {requestErrors[i] && <p className="err" role="alert">{requestErrors[i]}</p>}
         </form>}
       </article>
-    })}</div>
+    })}</div> : <p className="empty">No suitable donor transfer is available for these needs yet. Check inventory from other hospitals.</p>}
   </section>
 }
 

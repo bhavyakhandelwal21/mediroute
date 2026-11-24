@@ -55,19 +55,19 @@ export default function App() {
   const pdfAlerts = pdfAlertRows?.filter((r) => r.status !== 'OK') ?? []
   return (
     <>
-      <header><h1>Medi<span>Route</span></h1></header>
+      <header className="app-header"><div className="brand-lockup"><span className="brand-mark" aria-hidden="true">M</span><div><h1>Medi<span>Route</span></h1><p>Smarter medicine coordination across hospitals</p></div></div><span className={`connection-pill ${offline ? 'is-offline' : 'is-online'}`}><i />{offline ? 'Local mode' : 'Connected'}</span></header>
       <main>
-        {offline && <p className="note" role="status">Offline mode: data and analysis stay on this computer. The map shows hospital positions and straight-line distances without street maps.</p>}
+        {offline && <p className="mode-banner" role="status"><i />Local mode <span>Inventory and analysis run on this computer. Online sync, email, street maps and road routes need internet.</span></p>}
         {error && <div className="panel err">{error}</div>}
-        <div className="tabs" role="tablist">
-          {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
-        <div className="panel wrap">
+        <nav className="section-nav" aria-label="MediRoute sections"><div className="tabs" role="tablist">
+          {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div></nav>
+        <div key={tab} className="panel wrap section-content">
           {tab === 'blood' && <BloodBank offline={offline} />}
           {tab === 'temperature' && <ArrivalTemperature />}
           {tab === 'data' && <DataEntry onChange={refresh} onDataAdded={analyzeNewData} onOutbreak={(r) => setParams((old) => ({ ...old, outbreak_multiplier: r.surge_multiplier, outbreak_category: r.drug_category, outbreak_region: r.region }))} />}
           {tab === 'alerts' && data && <Alerts rows={data.rows} />}
           {tab === 'map' && data && <MapPage offline={offline} rows={data.rows} refreshKey={data} recommendedTransfer={data.transfers[0]} />}
-          {tab === 'transfers' && data && <Transfers items={data.transfers} />}
+          {tab === 'transfers' && data && <Transfers items={data.transfers} rows={data.rows} />}
           {tab === 'orders' && <TransferOrders />}
           {tab === 'reorders' && data && <Reorders rows={data.reorders} />}
           {tab === 'forecast' && data && <Forecast rows={data.rows} params={params} />}

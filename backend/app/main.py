@@ -13,6 +13,7 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
 from .supabase_sync import sync_all_hospitals
 from . import db
 from .seed import seed
@@ -31,6 +32,9 @@ from .ai_engine import (
 from .temperature import router as temperature_router
 
 SAMPLE_PDF = pathlib.Path(__file__).resolve().parent.parent / "samples" / "sample_hospital_report.pdf"
+# Load this checkout's backend/.env regardless of the directory used to start Uvicorn.
+BACKEND_DIR = pathlib.Path(__file__).resolve().parent.parent
+load_dotenv(BACKEND_DIR / ".env", override=False)
 
 app = FastAPI(title="MediRoute API")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -228,7 +232,7 @@ def _send_email(to, subject, text_body, html_body):
         from .gmail_mailer import send_message
         send_message(message)
     except FileNotFoundError:
-        raise HTTPException(503, "Email is not configured. Set SMTP_USER and SMTP_PASSWORD in backend/.env, or connect Gmail OAuth.")
+        raise HTTPException(503, "Gmail authentication is missing. Add SMTP_USER and a Gmail App Password as SMTP_PASSWORD in this project's backend/.env, then restart the backend. A Gmail address by itself cannot send mail.")
     except HTTPException:
         raise
     except Exception as exc:
@@ -243,14 +247,22 @@ def _send_order_email(order, order_id, token):
     text_body = (f"{order.target_facility} requests {order.quantity} units of {order.medicine} from {order.source_facility}. "
                  f"Indicative total: INR {total:.2f} (INR {order.unit_price:.2f}/unit). Estimated delivery: {order.transit_days} day(s).\n\n"
                  f"Accept: {accept}\nDecline: {decline}")
-    html = f"<p><b>{order.target_facility}</b> requests {order.quantity} units of {order.medicine} from {order.source_facility}.</p><p>Indicative total: <b>₹{total:.2f}</b> (₹{order.unit_price:.2f}/unit). Estimated delivery: {order.transit_days} day(s).</p><p><a href='{accept}'>Accept request</a> &nbsp; <a href='{decline}'>Decline request</a></p><p>Price is an estimate and should be confirmed by the donor.</p>"
+    html = f"<p><b>{order.target_facility}</b> requests {order.quantity} units of {order.medicine} from {order.source_facility}.</p><p>Indicative total: <b>₹{total:.2f}</b> (₹{order.unit_price:.2f}/unit). Estimated delivery: {order.transit_days} day(s).</p><p><a href='{accept}'>Accept request</a> &nbsp; <a href='{decline}'>Decline request</a></p>"
     _send_email(order.donor_email, subject, text_body, html)
 
 def _send_acceptance_email(row):
     total = row["quantity"] * row["unit_price"]
     subject = f"Transfer accepted: {row['medicine']}"
-    body = f"{row['source_facility']} accepted your request for {row['quantity']} units of {row['medicine']}. Indicative total: INR {total:.2f} (INR {row['unit_price']:.2f}/unit). Estimated delivery: {row['transit_days']} day(s). Confirm final price and delivery with the donor."
-    _send_email(row["requester_email"], subject, body, f"<p>{row['source_facility']} accepted your request for {row['quantity']} units of {row['medicine']}.</p><p>Indicative total: <b>₹{total:.2f}</b> (₹{row['unit_price']:.2f}/unit). Estimated delivery: <b>{row['transit_days']} day(s)</b>.</p><p>Confirm final price and delivery with the donor.</p>")
+    body = f"{row['source_facility']} accepted your request for {row['quantity']} units of {row['medicine']}. Indicative total: INR {total:.2f} (INR {row['unit_price']:.2f}/unit). Estimated delivery: {row['transit_days']} day(s)."
+    _send_email(row["requester_email"], subject, body, f"<p>{row['source_facility']} accepted your request for {row['quantity']} units of {row['medicine']}.</p><p>Indicative total: <b>₹{total:.2f}</b> (₹{row['unit_price']:.2f}/unit). Estimated delivery: <b>{row['transit_days']} day(s)</b>.</p>")
+
+def _send_decline_email(row):
+    subject = f"Transfer request declined: {row['medicine']}"
+    body = (f"{row['source_facility']} declined your request for {row['quantity']} units of {row['medicine']}. "
+            f"No transfer has been arranged. Contact the donor hospital if you need more information.")
+    html = (f"<p><b>{row['source_facility']}</b> declined your request for {row['quantity']} units of "
+            f"{row['medicine']}.</p><p>No transfer has been arranged. Contact the donor hospital if you need more information.</p>")
+    _send_email(row["requester_email"], subject, body, html)
 
 @app.get("/api/transfer-orders/{order_id}/respond")
 def respond_to_transfer_order(order_id: int, token: str, status: str):
@@ -259,6 +271,7 @@ def respond_to_transfer_order(order_id: int, token: str, status: str):
     if not row: c.close(); raise HTTPException(404, "This request is already handled or the link is invalid.")
     c.execute("UPDATE transfer_orders SET status=? WHERE id=?", (status, order_id)); c.commit(); c.close()
     if status == "Accepted": _send_acceptance_email(row)
+    else: _send_decline_email(row)
     return {"ok": True, "status": status}
 
 @app.patch("/api/transfer-orders/{order_id}")
@@ -272,6 +285,7 @@ def update_transfer_order(order_id: int, status: str):
     if not cur.rowcount:
         raise HTTPException(404, "Pending transfer request not found.")
     if status == "Accepted": _send_acceptance_email(row)
+    elif status == "Declined": _send_decline_email(row)
     return {"ok": True}
 
 @app.post("/api/records")
