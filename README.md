@@ -23,27 +23,67 @@ Offline mode disables external AI calls and map tile/road-routing requests. Hosp
 
 For a fresh computer, install the dependencies using the setup steps below while online, then run `npm run build` in `frontend`. Python virtual environments are machine-specific; copying `.venv` is not a portable installation. Rebuild after frontend changes. The normal two-terminal development setup remains available.
 
-## Run it (two terminals)
+## Easy start on a fresh Windows computer
 
-You need Python 3.10+ and Node.js 18+.
+### Before you start
 
-**Terminal 1: backend**
+- Install **Python 3.10 or newer** and **Node.js 18 or newer** (npm comes with Node.js). On Windows, allow the installers to add Python and Node to PATH, then reopen VS Code.
+- Download the repository as a ZIP from GitHub and extract the whole folder. Do not run the app from inside the ZIP preview.
+- Internet is needed the first time to download Python and npm packages. Later runs reuse those installed dependencies.
+
+### One-click Windows start
+
+1. Open the extracted `MediRoute` folder in VS Code or File Explorer.
+2. Double-click **`Start-MediRoute.cmd`**. If Windows asks whether to run the script, choose **Run**.
+3. Wait while first-run setup creates `backend/.venv` and installs dependencies. This may take a few minutes.
+4. MediRoute opens at **http://127.0.0.1:5173**. Keep both server terminal windows open while using the website. Close those windows to stop it.
+
+If double-click is blocked, open a PowerShell terminal in the extracted project folder and run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Start-MediRoute.ps1
 ```
+
+### Manual start (Windows, macOS, or Linux)
+
+Open two terminals in the extracted project folder.
+
+**Terminal 1 — backend** (the frontend proxy expects backend port 8001):
+
+```powershell
 cd backend
-python -m venv .venv
-# Windows:  .venv\Scripts\activate        Mac/Linux:  source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
 ```
-Check http://127.0.0.1:8000/docs (interactive API page). The first start creates `backend/mediflow.db` with sample data.
 
-**Terminal 2: frontend**
+On Windows:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
+
+On macOS/Linux, use `python3 -m venv .venv`, then activate with `source .venv/bin/activate`; install with `python -m pip install -r requirements.txt`, and start with `python -m uvicorn app.main:app --host 127.0.0.1 --port 8001`.
+
+**Terminal 2 — frontend:**
+
+```powershell
 cd frontend
 npm install
-npm run dev
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
-Open http://localhost:5173.
+
+Open **http://127.0.0.1:5173**. Keep both terminals open. Stop each server with **Ctrl+C**.
+
+### Important for another computer
+
+- Each local installation has its own `backend/mediflow.db`; data entered on one computer does **not** automatically appear on another. Shared use requires deploying MediRoute with a shared database or configuring hospital sync.
+- Email requires internet and Gmail SMTP/OAuth credentials configured locally in `backend/.env`; never commit that file or share its secrets.
+- Street tiles and road routes require internet. Road routing currently uses the public OSRM demo service, which can be unavailable; otherwise MediRoute displays a straight-line fallback.
+- The one-click launcher starts a local development/demo instance. It does not publish MediRoute to the internet or make it accessible to other devices.
+- If a port is already in use, stop the old MediRoute server window and retry. If Python reports a socket-permission error, try starting VS Code as administrator or ask the device administrator to allow local Python servers.
+
+The first backend start creates `backend/mediflow.db` with synthetic sample data. The API docs are available at http://127.0.0.1:8001/docs while the backend is running.
 
 ## Folder map (read in this order)
 
